@@ -81,7 +81,7 @@ def deployDataCenter(configFile) {
 }
 
 def waitForSystemVmTemplates() {
-  ssh('root@cs1', 'bash -x /data/shared/helper_scripts/cloudstack/wait_template_ready.sh')
+  ssh('root@cs1', '/data/shared/helper_scripts/cloudstack/wait_template_ready.py')
 }
 
 def ssh(target, command) {
