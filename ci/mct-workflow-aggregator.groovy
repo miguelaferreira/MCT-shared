@@ -67,14 +67,14 @@ def mctRunMarvinTestsParameters = [
 try {
   def runMarvinTestsJobName  = './mct-run-marvin-tests'
   def runMarvinTestsJobBuild = build job: runMarvinTestsJobName, parameters: mctRunMarvinTestsParameters
+
+  def runMarvinTestsJobBuildNumber = runMarvinTestsJobBuild.getNumber() as String
+  print "==> Run Marvin Tests Build Number = ${runMarvinTestsJobBuildNumber}"
 }
 catch(e) {
   echo "==> Marvin tests build was not successful"
 }
 finally {
-  def runMarvinTestsJobBuildNumber = runMarvinTestsJobBuild.getNumber() as String
-  print "==> Run Marvin Tests Build Number = ${runMarvinTestsJobBuildNumber}"
-
   def mctCleanUpInfraParameters = [
     new StringParameterValue('executor', executor, 'Executor'),
     new StringParameterValue('parent_job', deployDcJobName, 'Parent Job Name'),
