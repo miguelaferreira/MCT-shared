@@ -26,10 +26,7 @@ node(nodeExecutor) {
   scp('root@kvm2:/var/log/cloudstack/agent/agent.log*', 'kvm2-agent-logs/')
   archive 'kvm2-agent-logs/'
 
-  writeFile file: 'dumpDb.sh', text: 'mysqldump -u root cloud > dirty-db-dump.sql'
-  scp('dumpDb.sh', 'root@cs1:./')
-  ssh('root@cs1', 'chmod +x dumpDb.sh; ./dumpDb.sh')
-  archive 'dirty-db-dump.sql'
+  dumpDb('dirty-db-dump.sql')
 
   sh 'diff fresh-db-dump.sql dirty-db-dump.sql > db_diff.txt'
   archive 'db_diff.txt'
@@ -55,6 +52,15 @@ def copyFilesFromParentJob(parentJob, parentJobBuild, filesToCopy) {
   }
 
   step ([$class: 'CopyArtifact',  projectName: parentJob, selector: buildSelector(parentJobBuild), filter: filesToCopy.join(', ')]);
+}
+
+def dumpDb(dumpFile) {
+  sh "rm -f ${dumpFile}"
+  writeFile file: 'dumpDb.sh', text: "mysqldump -u root cloud > ${dumpFile}"
+  scp('dumpDb.sh', 'root@cs1:./')
+  ssh('root@cs1', 'chmod +x dumpDb.sh; ./dumpDb.sh')
+  scp("root@cs1:./${dumpFile}", '.')
+  archive dumpFile
 }
 
 def scp(source, target) {

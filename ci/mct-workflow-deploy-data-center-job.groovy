@@ -21,6 +21,8 @@ node(nodeExecutor) {
     waitForManagementServer('cs1')
     deployDataCenter(marvinConfigFile)
     waitForSystemVmTemplates()
+
+    dumpDb('fresh-db-dump.sql')
   }
 }
 
@@ -39,6 +41,15 @@ def copyFilesFromParentJob(parentJob, parentJobBuild, filesToCopy) {
   }
 
   step ([$class: 'CopyArtifact',  projectName: parentJob, selector: buildSelector(parentJobBuild), filter: filesToCopy.join(', ')]);
+}
+
+def dumpDb(dumpFile) {
+  sh "rm -f ${dumpFile}"
+  writeFile file: 'dumpDb.sh', text: "mysqldump -u root cloud > ${dumpFile}"
+  scp('dumpDb.sh', 'root@cs1:./')
+  ssh('root@cs1', 'chmod +x dumpDb.sh; ./dumpDb.sh')
+  scp("root@cs1:./${dumpFile}", '.')
+  archive dumpFile
 }
 
 def updateManagementServerIp(configFile, vmIp) {
