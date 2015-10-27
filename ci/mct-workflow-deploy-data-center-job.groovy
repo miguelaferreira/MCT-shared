@@ -98,3 +98,7 @@ def waitForSystemVmTemplates() {
 def ssh(target, command) {
   sh "ssh -i ~/.ssh/mccd-jenkins.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q ${target} \"${command}\""
 }
+
+def scp(source, target) {
+  sh "scp -i ~/.ssh/mccd-jenkins.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q -r ${source} ${target}"
+}
