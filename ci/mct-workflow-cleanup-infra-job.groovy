@@ -8,6 +8,8 @@ def parentJobBuild       = parent_job_build
 def marvinConfigFile     = marvin_config_file
 
 node(nodeExecutor) {
+  sh 'rm -rf ./*'
+
   copyFilesFromParentJob(parentJob, parentJobBuild, ['fresh-db-dump.sql'])
 
   sh  "cp /data/shared/marvin/${marvinConfigFile} ./"
