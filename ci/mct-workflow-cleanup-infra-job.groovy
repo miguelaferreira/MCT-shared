@@ -7,34 +7,34 @@ def parentJob            = parent_job
 def parentJobBuild       = parent_job_build
 def marvinConfigFile     = marvin_config_file
 
+def FRESH_DB_DUMP = 'fresh-db-dump.sql'
+def DIRTY_DB_DUMP = 'dirty-db-dump.sql'
+def DB_DUMP_DIFF  = 'db-dump-diff.txt'
+
 node(nodeExecutor) {
   sh 'rm -rf ./*'
 
-  copyFilesFromParentJob(parentJob, parentJobBuild, ['fresh-db-dump.sql'])
+  copyFilesFromParentJob(parentJob, parentJobBuild, [FRESH_DB_DUMP])
 
   sh  "cp /data/shared/marvin/${marvinConfigFile} ./"
 
-  scp('root@cs1:~tomcat/vmops.log*', '.')
-  scp('root@cs1:~tomcat/api.log*', '.')
+  collectLogFiles('root@cs1', ['~tomcat/vmops.log*', '~tomcat/api.log*'], '.')
   archive 'vmops.log*, api.log*'
-
-  sh 'mkdir kvm1-agent-logs'
-  scp('root@kvm1:/var/log/cloudstack/agent/agent.log*', 'kvm1-agent-logs/')
-  archive 'kvm1-agent-logs/'
-
-  sh 'mkdir kvm2-agent-logs'
-  scp('root@kvm2:/var/log/cloudstack/agent/agent.log*', 'kvm2-agent-logs/')
-  archive 'kvm2-agent-logs/'
-
-  dumpDb('dirty-db-dump.sql')
-
-  sh 'diff fresh-db-dump.sql dirty-db-dump.sql > db_diff.txt'
-  archive 'db_diff.txt'
+  sh '/data/vm-easy-deploy/remove_vm.sh -f cs1'
 
   // TODO: replace hardcoded box names
-  sh '/data/vm-easy-deploy/remove_vm.sh -f cs1'
-  sh '/data/vm-easy-deploy/remove_vm.sh -f kvm1'
-  sh '/data/vm-easy-deploy/remove_vm.sh -f kvm2'
+  ['kvm1', 'kvm2'].each { host ->
+    def hostLogDir = "${host}-agent-logs/"
+    sh "mkdir ${hostLogDir}"
+    collectLogFiles("root@${host}", ['/var/log/cloudstack/agent/agent.log*'], hostLogDir)
+    archive hostLogDir
+    sh "/data/vm-easy-deploy/remove_vm.sh -f ${host}"
+  }
+
+
+  dumpDb(DIRTY_DB_DUMP)
+  diffDbDumps(FRESH_DB_DUMP, DIRTY_DB_DUMP, DB_DUMP_DIFF)
+  archive DB_DUMP_DIFF
 }
 
 // ----------------
@@ -54,6 +54,16 @@ def copyFilesFromParentJob(parentJob, parentJobBuild, filesToCopy) {
   step ([$class: 'CopyArtifact',  projectName: parentJob, selector: buildSelector(parentJobBuild), filter: filesToCopy.join(', ')]);
 }
 
+def collectLogFiles(partialTarget, files, destination) {
+  files.each { f ->
+    try {
+      scp("${partialTarget}:${f}", destination)
+    } catch(e) {
+      echo "Failed to collect file '${f}' from ${partialTarget}"
+    }
+  }
+}
+
 def dumpDb(dumpFile) {
   sh "rm -f ${dumpFile}"
   writeFile file: 'dumpDb.sh', text: "mysqldump -u root cloud > ${dumpFile}"
@@ -61,6 +71,10 @@ def dumpDb(dumpFile) {
   ssh('root@cs1', 'chmod +x dumpDb.sh; ./dumpDb.sh')
   scp("root@cs1:./${dumpFile}", '.')
   archive dumpFile
+}
+
+def diffDbDumps(fresh, dirty, diffFile) {
+  sh "diff ${fresh} ${dirty} > ${diffFile}"
 }
 
 def scp(source, target) {
