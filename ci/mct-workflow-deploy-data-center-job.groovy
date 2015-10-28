@@ -22,7 +22,9 @@ node(nodeExecutor) {
     deployDataCenter(marvinConfigFile)
     waitForSystemVmTemplates()
 
-    dumpDb('fresh-db-dump.sql')
+    def dbDumpFile = 'fresh-db-dump.sql'
+    dumpDb(dbDumpFile)
+    archive dbDumpFile
   }
 }
 
@@ -49,7 +51,6 @@ def dumpDb(dumpFile) {
   scp('dumpDb.sh', 'root@cs1:./')
   ssh('root@cs1', 'chmod +x dumpDb.sh; ./dumpDb.sh')
   scp("root@cs1:./${dumpFile}", '.')
-  archive dumpFile
 }
 
 def updateManagementServerIp(configFile, vmIp) {
