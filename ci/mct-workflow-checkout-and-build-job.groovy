@@ -14,15 +14,10 @@ def DB_SCRIPTS = [
 ]
 
 // TODO: move to library
-def TEMPLATE_SCRIPTS = [
-  'scripts/storage/secondary/'
-]
+def TEMPLATE_SCRIPTS = ['scripts/storage/secondary/']
 
 // TODO: move to library
-def MARVIN_SCRIPTS = [
-  'test/integration/',
-  'tools/travis/xunit-reader.py'
-]
+def MARVIN_SCRIPTS = ['test/integration/']
 
 node('executor') {
   checkout scm: [$class: 'GitSCM', branches:          [[name: gitBranch]],
