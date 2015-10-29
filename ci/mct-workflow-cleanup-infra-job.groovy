@@ -20,6 +20,11 @@ node(nodeExecutor) {
 
   collectLogFiles('root@cs1', ['~tomcat/vmops.log*', '~tomcat/api.log*'], '.')
   archive 'vmops.log*, api.log*'
+
+  dumpDb(DIRTY_DB_DUMP)
+  diffDbDumps(FRESH_DB_DUMP, DIRTY_DB_DUMP, DB_DUMP_DIFF)
+  archive DB_DUMP_DIFF
+
   sh '/data/vm-easy-deploy/remove_vm.sh -f cs1'
 
   // TODO: replace hardcoded box names
@@ -30,11 +35,6 @@ node(nodeExecutor) {
     archive hostLogDir
     sh "/data/vm-easy-deploy/remove_vm.sh -f ${host}"
   }
-
-
-  dumpDb(DIRTY_DB_DUMP)
-  diffDbDumps(FRESH_DB_DUMP, DIRTY_DB_DUMP, DB_DUMP_DIFF)
-  archive DB_DUMP_DIFF
 }
 
 // ----------------
