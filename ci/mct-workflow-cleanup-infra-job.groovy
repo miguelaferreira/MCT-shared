@@ -28,13 +28,7 @@ node(nodeExecutor) {
   sh '/data/vm-easy-deploy/remove_vm.sh -f cs1'
 
   // TODO: replace hardcoded box names
-  ['kvm1', 'kvm2'].each { host ->
-    def hostLogDir = "${host}-agent-logs/"
-    sh "mkdir ${hostLogDir}"
-    collectLogFiles("root@${host}", ['/var/log/cloudstack/agent/agent.log*'], hostLogDir)
-    archive hostLogDir
-    sh "/data/vm-easy-deploy/remove_vm.sh -f ${host}"
-  }
+  collectHostLogs(['kvm1', 'kvm2'])
 }
 
 // ----------------
@@ -55,12 +49,23 @@ def copyFilesFromParentJob(parentJob, parentJobBuild, filesToCopy) {
 }
 
 def collectLogFiles(partialTarget, files, destination) {
-  files.each { f ->
+  for(int i = 0; i < files.size();  i++)
+    def file = files.getAt(i)
     try {
-      scp("${partialTarget}:${f}", destination)
+      scp("${partialTarget}:${file}", destination)
     } catch(e) {
-      echo "Failed to collect file '${f}' from ${partialTarget}"
+      echo "Failed to collect file '${file}' from ${partialTarget}: ${e}"
     }
+  }
+}
+
+def collectHostLogs(hosts) {
+  for(int i = 0; i < hosts.size(); i++) host
+    def host = hosts.getAt(i)
+    def hostLogDir = "${host}-agent-logs/"
+    sh "mkdir ${hostLogDir}"
+    collectLogFiles("root@${host}", ['/var/log/cloudstack/agent/agent.log*'], hostLogDir)
+    sh "/data/vm-easy-deploy/remove_vm.sh -f ${host}"
   }
 }
 
