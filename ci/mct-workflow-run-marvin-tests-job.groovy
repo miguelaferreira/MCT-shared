@@ -126,7 +126,7 @@ def runMultipleMarvinTests(tests, configFile, requireHardware, nodeExecutor) {
       unstash 'marvin'
       setupPython {
         installMarvin('tools/marvin/dist/Marvin-*.tar.gz')
-        def testsSuffix = "required_hardware-${requireHardware}_${testSet.join('--')}"
+        def testsSuffix = "required_hardware-${requireHardware}_${testSet.join('--')}".replaceAll('/','-')
         def noseTestsReportFile = "nosetests-${testsSuffix}.xml"
         def marvinLogsDir = "MarvinLogs-${testsSuffix}"
         try {
