@@ -20,8 +20,11 @@ node('executor') {
 
   stash name: 'marvin', includes: (filesToCopy + [marvinConfigFile]).join(', ')
 
-  runMultipleMarvinTests(marvinTestsWithHw, marvinConfigFile, true, nodeExecutor)
-  runMultipleMarvinTests(marvinTestsWithHw, marvinConfigFile, false, nodeExecutor)
+  parallel "Marvin Tests required_hardware=true": {
+    runMultipleMarvinTests(marvinTestsWithHw, marvinConfigFile, true, nodeExecutor)
+  }, "Marvin Tests required_hardware=false" : {
+    runMultipleMarvinTests(marvinTestsWithHw, marvinConfigFile, false, nodeExecutor)
+  }
 
   unarchive mapping: ['nosetests*.xml': '.']
   step([$class: 'JUnitResultArchiver', testResults: 'nosetests*.xml'])
