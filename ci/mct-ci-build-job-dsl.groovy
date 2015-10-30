@@ -157,7 +157,7 @@ FOLDERS.each { folder_name ->
     }
     parameters {
       textParam('executor', EXECUTOR, 'The executor label')
-      textParam('parent_job', deployInfraJobName, 'The parent job name')
+      textParam('parent_job', deployDcJobName, 'The parent job name')
       textParam('parent_job_build', 'last_completed', 'The parent job build number')
       textParam('marvin_config_file', MARVIN_CONFIG_FILE, 'Marvin configuration file')
     }
