@@ -105,43 +105,52 @@ def runMarvinTest(testPath, configFile, requireHardware, nodeExecutor) {
 }
 
 def runMultipleMarvinTests(tests, configFile, requireHardware, nodeExecutor) {
+  def testSets = []
   def fullPathTests = []
   for(int i = 0; i < tests.size; i++) {
     fullPathTests.add('test/integration/' + tests.getAt(i) + '.py')
-  }
-
-  node(nodeExecutor) {
-    sh 'rm -rf /tmp/MarvinLogs'
-    sh 'rm -rf ./*'
-
-    sh  "cp /data/shared/marvin/${configFile} ./"
-    updateManagementServerIp(configFile, 'cs1')
-
-    unstash 'marvin'
-    setupPython {
-      installMarvin('tools/marvin/dist/Marvin-*.tar.gz')
-      def testsSuffix = "required_hardware-${requireHardware}"
-      def noseTestsReportFile = "nosetests-${testsSuffix}.xml"
-      def marvinLogsDir = "MarvinLogs-${testsSuffix}"
-      try {
-        sh "nosetests --with-xunit --xunit-file=${noseTestsReportFile} --with-marvin --marvin-config=${configFile} -s -a tags=advanced,required_hardware=${requireHardware} ${fullPathTests.join(' ')}"
-      } catch(e) {
-        echo "Test run was not successful"
-      }
-      archive noseTestsReportFile
-
-      sh "mkdir -p ${marvinLogsDir}"
-      sh "cp -rf /tmp/MarvinLogs/* ${marvinLogsDir}/"
-      archive "${marvinLogsDir}/"
+    if(i % 4 == 0) {
+      testSets.add(fullPathTests)
+      fullPathTests = []
     }
   }
+
+  testBranches = buildParallelBranches(testSets, { testSet ->
+    node(nodeExecutor) {
+      sh 'rm -rf /tmp/MarvinLogs'
+      sh 'rm -rf ./*'
+
+      sh  "cp /data/shared/marvin/${configFile} ./"
+      updateManagementServerIp(configFile, 'cs1')
+
+      unstash 'marvin'
+      setupPython {
+        installMarvin('tools/marvin/dist/Marvin-*.tar.gz')
+        def testsSuffix = "required_hardware-${requireHardware}_${testSet.join('--')}"
+        def noseTestsReportFile = "nosetests-${testsSuffix}.xml"
+        def marvinLogsDir = "MarvinLogs-${testsSuffix}"
+        try {
+          sh "nosetests --with-xunit --xunit-file=${noseTestsReportFile} --with-marvin --marvin-config=${configFile} -s -a tags=advanced,required_hardware=${requireHardware} ${testSet.join(' ')}"
+        } catch(e) {
+          echo "Test run was not successful"
+        }
+        archive noseTestsReportFile
+
+        sh "mkdir -p ${marvinLogsDir}"
+        sh "cp -rf /tmp/MarvinLogs/* ${marvinLogsDir}/"
+        archive "${marvinLogsDir}/"
+      }
+    }
+  })
+
+ parallel testBranches
 }
 
-def buildParallelBranches(elements, branchNameFunction, actionFunction) {
+def buildParallelBranches(elements, actionFunction) {
   def branches = [:]
   for (int i = 0; i < elements.size(); i++) {
     def element = elements.getAt(i)
-    def branchName = branchNameFunction(element)
+    def branchName = "Test Set ${i}"
     branches.put(branchName, {
       actionFunction(element)
     })
