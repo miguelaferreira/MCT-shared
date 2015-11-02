@@ -49,7 +49,7 @@ def copyFilesFromParentJob(parentJob, parentJobBuild, filesToCopy) {
 }
 
 def collectLogFiles(partialTarget, files, destination) {
-  for(int i = 0; i < files.size();  i++)
+  for(int i = 0; i < files.size();  i++) {
     def file = files.getAt(i)
     try {
       scp("${partialTarget}:${file}", destination)
@@ -60,7 +60,7 @@ def collectLogFiles(partialTarget, files, destination) {
 }
 
 def collectHostLogs(hosts) {
-  for(int i = 0; i < hosts.size(); i++) host
+  for(int i = 0; i < hosts.size(); i++) {
     def host = hosts.getAt(i)
     def hostLogDir = "${host}-agent-logs/"
     sh "mkdir ${hostLogDir}"
@@ -79,7 +79,11 @@ def dumpDb(dumpFile) {
 }
 
 def diffDbDumps(fresh, dirty, diffFile) {
-  sh "diff ${fresh} ${dirty} > ${diffFile}"
+  try {
+    sh "diff ${fresh} ${dirty} > ${diffFile}"
+  } catch(e) {
+    echo "Ignoring return status from diff command: ${e}"
+  }
 }
 
 def scp(source, target) {
